@@ -1,14 +1,20 @@
 package com.lambda;
 
 
+import com.amazonaws.ClientConfiguration;
+import com.amazonaws.auth.AWSCredentialsProviderChain;
+import com.amazonaws.auth.AWSStaticCredentialsProvider;
+import com.amazonaws.auth.BasicAWSCredentials;
 import com.amazonaws.auth.policy.actions.Route53Actions;
 import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
+import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.DescribeNetworkInterfacesResult;
 import com.amazonaws.services.ec2.model.NetworkInterface;
 import com.amazonaws.services.ecs.AmazonECS;
 import com.amazonaws.services.ecs.AmazonECSClient;
+import com.amazonaws.services.ecs.AmazonECSClientBuilder;
 import com.amazonaws.services.ecs.model.Attachment;
 import com.amazonaws.services.ecs.model.ListTagsForResourceRequest;
 import com.amazonaws.services.ecs.model.ListTagsForResourceResult;
@@ -19,6 +25,7 @@ import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.ScheduledEvent;
 import com.amazonaws.services.route53.AmazonRoute53;
 import com.amazonaws.services.route53.AmazonRoute53Client;
+import com.amazonaws.services.route53.AmazonRoute53ClientBuilder;
 import com.amazonaws.services.route53.model.*;
 import com.amazonaws.util.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -31,6 +38,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 
@@ -40,29 +48,27 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
     // Initialize the Log4j logger.
     static final Logger logger = LogManager.getLogger(HandlerCWEvents.class);
 
-    AmazonECS ecs = AmazonECSClient.builder()
-            .withRegion("us-east-1")
-            .build();
-    AmazonEC2 ec2 = AmazonEC2Client.builder()
-            .withRegion("us-east-1")
-            .build();
+    private final String accessKey = "AKIA57DR3R6KPXEKLFX2";
+    private final String secretKey = "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";
 
-    AmazonRoute53 route53 = AmazonRoute53Client.builder()
-            .withRegion("us-east-1")
-            .build();
+    AmazonECS ecs = AmazonECSClientBuilder.defaultClient();
+    AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
+    AmazonRoute53 route53 = AmazonRoute53ClientBuilder.defaultClient();
+
 
     @Override
     public List<String> handleRequest(ScheduledEvent event, Context context) {
 
-/*        ObjectMapper mapper = new ObjectMapper().registerModule(new JodaModule());
+
+        ObjectMapper mapper = new ObjectMapper().registerModule(new JodaModule()).setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssz"));
 
         try {
             System.out.println("EVENT: " + mapper.writeValueAsString(event));
         } catch (JsonProcessingException e) {
             throw new RuntimeException(e);
-        }*/
+        }
 
-        System.out.println("EVENT1: " + event.toString());
+        System.out.println("EVENT: " + event.toString());
 
         String domain = null;
         List<String> services = new ArrayList<>();
