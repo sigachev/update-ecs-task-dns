@@ -1,42 +1,29 @@
 package com.lambda;
 
 
-import com.amazonaws.ClientConfiguration;
-import com.amazonaws.auth.AWSCredentialsProviderChain;
-import com.amazonaws.auth.AWSStaticCredentialsProvider;
-import com.amazonaws.auth.BasicAWSCredentials;
-import com.amazonaws.auth.policy.actions.Route53Actions;
-import com.amazonaws.client.builder.AwsClientBuilder;
 import com.amazonaws.services.ec2.AmazonEC2;
-import com.amazonaws.services.ec2.AmazonEC2Client;
 import com.amazonaws.services.ec2.AmazonEC2ClientBuilder;
 import com.amazonaws.services.ec2.model.DescribeNetworkInterfacesResult;
 import com.amazonaws.services.ec2.model.NetworkInterface;
 import com.amazonaws.services.ecs.AmazonECS;
-import com.amazonaws.services.ecs.AmazonECSClient;
 import com.amazonaws.services.ecs.AmazonECSClientBuilder;
-import com.amazonaws.services.ecs.model.Attachment;
 import com.amazonaws.services.ecs.model.ListTagsForResourceRequest;
 import com.amazonaws.services.ecs.model.ListTagsForResourceResult;
 import com.amazonaws.services.ecs.model.Tag;
 import com.amazonaws.services.lambda.runtime.Context;
-import com.amazonaws.services.lambda.runtime.LambdaLogger;
 import com.amazonaws.services.lambda.runtime.RequestHandler;
 import com.amazonaws.services.lambda.runtime.events.ScheduledEvent;
 import com.amazonaws.services.route53.AmazonRoute53;
-import com.amazonaws.services.route53.AmazonRoute53Client;
 import com.amazonaws.services.route53.AmazonRoute53ClientBuilder;
 import com.amazonaws.services.route53.model.*;
 import com.amazonaws.util.StringUtils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.util.JSONPObject;
 import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONObject;
-
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -47,9 +34,6 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
     // Initialize the Log4j logger.
     static final Logger logger = LogManager.getLogger(HandlerCWEvents.class);
-
-    private final String accessKey = "AKIA57DR3R6KPXEKLFX2";
-    private final String secretKey = "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";
 
     AmazonECS ecs = AmazonECSClientBuilder.defaultClient();
     AmazonEC2 ec2 = AmazonEC2ClientBuilder.defaultClient();
@@ -120,8 +104,7 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
         updateDnsRecord(route53, hostedZoneId, containerDomain, taskPublicIp);
 
-        logger.info("DNS record update finished for {} ({}})", containerDomain, taskPublicIp);
-
+        System.out.println("DNS record update finished for " + containerDomain + " (" + taskPublicIp + ")");
 
         return new ArrayList<String>(Collections.singleton("DNS record update finished for " + containerDomain + " publicIp = " + taskPublicIp));
     }
@@ -129,7 +112,7 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
     private String getEniId(ScheduledEvent event) {
 
-        System.out.println("Obj: " + event.getDetail());
+        //System.out.println("Obj: " + event.getDetail());
 
         JSONObject jsonObject = new JSONObject(event.getDetail());
         JSONArray attachments = jsonObject.getJSONArray("attachments");

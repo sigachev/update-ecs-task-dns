@@ -36,6 +36,8 @@ In your ECS console, select your cluster and add the tags
 * domain (the domain name of your public DNS namespace, for example `finmates.com`)
 * services (service names separated by "/" DNS entries should be updated for, for example `stocks/notifications`)
 
+In Lambda configuration choose NO VPC (this way it connects with ec2 nd ecs services OK)
+
 ## Demo
 
 Well, just start a Fargate task in your cluster. When the task has started up, the function creates an A-record-set in your
