@@ -9,6 +9,7 @@ import com.amazonaws.services.ec2.model.DescribeNetworkInterfacesResult;
 import com.amazonaws.services.ec2.model.NetworkInterface;
 import com.amazonaws.services.ecs.AmazonECS;
 import com.amazonaws.services.ecs.AmazonECSClient;
+import com.amazonaws.services.ecs.model.Attachment;
 import com.amazonaws.services.ecs.model.ListTagsForResourceRequest;
 import com.amazonaws.services.ecs.model.ListTagsForResourceResult;
 import com.amazonaws.services.ecs.model.Tag;
@@ -20,7 +21,10 @@ import com.amazonaws.services.route53.AmazonRoute53;
 import com.amazonaws.services.route53.AmazonRoute53Client;
 import com.amazonaws.services.route53.model.*;
 import com.amazonaws.util.StringUtils;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.util.JSONPObject;
+import com.fasterxml.jackson.datatype.joda.JodaModule;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.json.JSONArray;
@@ -50,7 +54,15 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
     @Override
     public List<String> handleRequest(ScheduledEvent event, Context context) {
 
-        logger.info("EVENT: " + event.toString());
+/*        ObjectMapper mapper = new ObjectMapper().registerModule(new JodaModule());
+
+        try {
+            System.out.println("EVENT: " + mapper.writeValueAsString(event));
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException(e);
+        }*/
+
+        System.out.println("EVENT1: " + event.toString());
 
         String domain = null;
         List<String> services = new ArrayList<>();
@@ -68,8 +80,8 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
         }
 
         Optional<String> servicesOpt = result.getTags().stream().filter(t -> t.getKey().equalsIgnoreCase("services")).map(Tag::getValue).findFirst();
-        if (domainOpt.isPresent()) {
-            services = Arrays.stream(domainOpt.get().split("/")).toList();
+        if (servicesOpt.isPresent()) {
+            services = Arrays.asList(servicesOpt.get().split("/"));
         }
 
         Optional<String> hostedZoneIdOpt = result.getTags().stream().filter(t -> t.getKey().equalsIgnoreCase("hostedZoneId")).map(Tag::getValue).findFirst();
@@ -78,7 +90,7 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
         }
 
 
-        System.out.println("domain = " + domain + "  services = " + services + "  gostedZoneId = " + hostedZoneId);
+        System.out.println("domain = " + domain + "  services = " + services + "  hostedZoneId = " + hostedZoneId);
 
         //get ENI
         String eniId = getEniId(event);
@@ -97,9 +109,10 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
             return null;
         }
 
+        assert domain != null;
         String containerDomain = serviceName.concat(".").concat(domain);
 
-        updateDnsRecord(route53, hostedZoneId, domain, taskPublicIp);
+        updateDnsRecord(route53, hostedZoneId, containerDomain, taskPublicIp);
 
         logger.info("DNS record update finished for {} ({}})", containerDomain, taskPublicIp);
 
@@ -109,7 +122,12 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
 
     private String getEniId(ScheduledEvent event) {
-        JSONArray attachments = (JSONArray) event.getDetail().get("attachments");
+
+        System.out.println("Obj: " + event.getDetail());
+
+        JSONObject jsonObject = new JSONObject(event.getDetail());
+        JSONArray attachments = jsonObject.getJSONArray("attachments");
+
         for (Object obj : attachments) {
             JSONObject json = (JSONObject) obj;
             if (json.getString("type").equalsIgnoreCase("eni")) {
@@ -128,6 +146,8 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
     private String fetchEniPublicIp(String eniId) {
         DescribeNetworkInterfacesResult result = ec2.describeNetworkInterfaces().withNetworkInterfaces(new NetworkInterface().withNetworkInterfaceId(eniId));
+        System.out.println("result = " + result);
+        System.out.println("result2 = " + result.getNetworkInterfaces().get(0).getPrivateIpAddresses().get(0));
         return result.getNetworkInterfaces().get(0).getPrivateIpAddresses().get(0).getAssociation().getPublicIp();
     }
 
@@ -146,6 +166,7 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
         if (hostedZoneOpt.isPresent()) {
             ResourceRecordSet alias = new ResourceRecordSet(domain, "A");
+            alias.setName(domain);
             alias.setTTL(180L);
             alias.setResourceRecords(Collections.singleton(new ResourceRecord().withValue(publicIp)));
 
@@ -163,5 +184,5 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
     }
 
-    
+
 }
