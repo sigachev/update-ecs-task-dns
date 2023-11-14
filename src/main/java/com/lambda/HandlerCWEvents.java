@@ -134,10 +134,14 @@ public class HandlerCWEvents implements RequestHandler<ScheduledEvent, List<Stri
 
 
     private String fetchEniPublicIp(String eniId) {
-        DescribeNetworkInterfacesResult result = ec2.describeNetworkInterfaces().withNetworkInterfaces(new NetworkInterface().withNetworkInterfaceId(eniId));
-        System.out.println("result = " + result);
-        System.out.println("result2 = " + result.getNetworkInterfaces().get(0).getPrivateIpAddresses().get(0));
-        return result.getNetworkInterfaces().get(0).getPrivateIpAddresses().get(0).getAssociation().getPublicIp();
+        NetworkInterface networkInterface;
+        Optional<NetworkInterface> networkInterfaceOpt = ec2.describeNetworkInterfaces().getNetworkInterfaces().stream().filter(i -> i.getNetworkInterfaceId().equals(eniId)).findFirst();
+        if (networkInterfaceOpt.isPresent()) {
+            networkInterface = networkInterfaceOpt.get();
+            System.out.println("networkInterface = " + networkInterface);
+            return networkInterface.getPrivateIpAddresses().get(0).getAssociation().getPublicIp();
+        }
+        return null;
     }
 
 
