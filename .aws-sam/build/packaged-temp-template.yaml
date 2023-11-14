@@ -5,7 +5,7 @@ Resources:
       Timeout: 300
       MemorySize: 128
       Handler: com.lambda.HandlerCWEvents
-      CodeUri: s3://finmates-build-bucket/42df7a4e60d54bed70b92e4e5b0b867a
+      CodeUri: s3://finmates-build-bucket/24f1dcb8fa0f46ce54c43e9627b19828
       Runtime: java17
       Architectures:
       - x86_64
